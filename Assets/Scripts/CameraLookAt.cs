@@ -2,7 +2,6 @@ using UnityEngine;
 
 public class CameraLookAt : MonoBehaviour
 {
-
     public GameObject ball;
     public Vector3 defRotation;
     public bool readyToDeliver, startingRunUp;

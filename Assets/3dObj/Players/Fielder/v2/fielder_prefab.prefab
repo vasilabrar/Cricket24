@@ -279,9 +279,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1457580760809224312}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.70112437, y: 0.09178551, z: 0.09178551, w: 0.7011244}
-  m_LocalPosition: {x: -0.00070668623, y: 0.76517415, z: 0.0001882598}
-  m_LocalScale: {x: 2.5400007, y: 2.5400007, z: 2.5400004}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4435933986559664569}
@@ -305,6 +305,7 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1362,10 +1363,10 @@ MonoBehaviour:
   rightHandEffector: 6
   leftHandEffector: 5
   isTransitioning: 0
+  throwArm: {fileID: 4922493629970488337}
   stepDistance: 2.6
   stepHeight: 0.2
   stepSpeed: 20
-  throwArm: {fileID: 4922493629970488337}
 --- !u!114 &6404588627316019831
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1408,21 +1409,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   runSpeed: 4
-  score: 0
-  angleDiff: 0
-  timeToReachLanding: 0
-  targetPosition: {x: 0, y: 0, z: 0}
+  groundY: 0
+  turnSpeed: 10
+  reactionTime: 0.22
+  reach: 1.2
+  maxCatchHeight: 2.4
+  handReachDuration: 0.55
+  isRightHanded: 0
+  isKeeper: 0
+  throwable: 0
+  startedRun: 0
   ball: {fileID: 0}
   throwingArm: {fileID: 4922493629970488337}
-  canReachInTime: 0
-  startedRun: 0
+  fielderTargetMark: {fileID: 3590798138699095066}
+  animator: {fileID: 0}
   fm: {fileID: 0}
-  headAim: {fileID: 0}
-  neckAim: {fileID: 0}
-  ikControl: {fileID: 0}
-  rayTestObject: {fileID: 0}
-  agent: {fileID: 0}
-  chaseMode: 0
   pickScript: {fileID: 0}
   idleClip: {fileID: -203655887218126122, guid: f9c3d4e3e26c54cd084eb1b22652fce8, type: 3}
   runningClip: {fileID: -203655887218126122, guid: 404023fd616d345e68c2a5408c5d9a0f, type: 3}
@@ -1436,13 +1437,8 @@ MonoBehaviour:
   pickUpClip: {fileID: 0}
   throwClip: {fileID: -203655887218126122, guid: 26c48ac26892549738c2a198332b6246, type: 3}
   kneelClip: {fileID: 0}
-  handReachDuration: 0.55
-  earlyBias: 0.03
-  fielderTargetMark: {fileID: 3590798138699095066}
-  distanceToTarget: 0
-  isRightHanded: 0
-  isKeeper: 0
-  throwable: 0
+  targetPosition: {x: 0, y: 0, z: 0}
+  debugPickup: 1
 --- !u!114 &642961738744211812
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1577,6 +1573,7 @@ MeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2176,6 +2173,7 @@ MeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2448,14 +2446,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5841213253255794113}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.28900102, y: 0.6092173, z: 0.67508686, w: 0.2993166}
-  m_LocalPosition: {x: -0.2776164, y: 0.9150252, z: 0.22475483}
-  m_LocalScale: {x: 2.5400002, y: 2.5400002, z: 2.54}
-  m_ConstrainProportionsScale: 0
+  m_LocalRotation: {x: -0.6729866, y: 0, z: 0, w: 0.73965466}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 2284730121383786151}
   m_Father: {fileID: 4435933986559664569}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -84.596, y: 0, z: 0}
 --- !u!1 &5879136690343896473
 GameObject:
   m_ObjectHideFlags: 0
@@ -3267,7 +3265,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2836697357418230702
 Transform:
   m_ObjectHideFlags: 0

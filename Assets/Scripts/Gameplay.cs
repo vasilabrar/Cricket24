@@ -8,7 +8,7 @@ public class Gameplay : MonoBehaviour
 {
     public static Gameplay instance;
 
-    [SerializeField] GameObject lostPanel, pauseBtn, mark, bails, ball, groundBounds, bat, bowler, overPanel, keeper, nonStrike;
+    [SerializeField] GameObject lostPanel, pauseBtn, mark, bails, ball, groundBounds, bat, bowler, overPanel, nonStrike;
     [SerializeField] RectTransform dragRect;
     [SerializeField] int balls, overs, wickets;
     [SerializeField] Vector3 ballLaunchPos, bound1, bound2, bound3, bound4, ballOriginPoint, ballScale, ballerTrueScale;
@@ -57,50 +57,6 @@ public class Gameplay : MonoBehaviour
         bowlerPalm = ball.transform.parent;
         ballOriginPoint = ball.transform.localPosition;
         ballScale = ball.transform.localScale;
-        //deliveryPoints = new List<Vector3>()
-        //{
-        //    // =====================
-        //    // YORKERS (Blockhole)
-        //    // =====================
-        //    new Vector3(-3.8f, 0.01f, 48.5f),
-        //    new Vector3(-4.2f, 0.01f, 47.5f),
-        //    new Vector3(-3.5f, 0.01f, 46.0f),
-
-        //    // =====================
-        //    // FULL / SLOT
-        //    // =====================
-        //    new Vector3(-3.2f, 0.01f, 40.0f),
-        //    new Vector3(-3.6f, 0.01f, 38.5f),
-        //    new Vector3(-4.0f, 0.01f, 36.5f),
-
-        //    // =====================
-        //    // GOOD LENGTH
-        //    // =====================
-        //    new Vector3(-2.8f, 0.01f, 22.0f),
-        //    new Vector3(-3.2f, 0.01f, 20.0f),
-        //    new Vector3(-3.6f, 0.01f, 18.0f),
-
-        //    // =====================
-        //    // BACK OF A LENGTH
-        //    // =====================
-        //    new Vector3(-3.0f, 0.01f, 8.0f),
-        //    new Vector3(-3.5f, 0.01f, 5.0f),
-        //    new Vector3(-4.0f, 0.01f, 2.0f),
-
-        //    // =====================
-        //    // SHORT / BOUNCERS
-        //    // =====================
-        //    new Vector3(-3.4f, 0.01f, -5.0f),
-        //    new Vector3(-3.8f, 0.01f, -10.0f),
-        //    new Vector3(-4.2f, 0.01f, -15.0f),
-        //    new Vector3(-4.6f, 0.01f, -20.0f),
-
-        //    // =====================
-        //    // TOO SHORT (Punish)
-        //    // =====================
-        //    new Vector3(-4.0f, 0.01f, -25.0f),
-        //    new Vector3(-4.5f, 0.01f, -30.0f),
-        //};
         StartCoroutine(LaunchBallsWithDelay());
     }
 
@@ -129,7 +85,6 @@ public class Gameplay : MonoBehaviour
             //Debug.Log("bound poss " + pitchPoint);
 
             mark.transform.position = pitchPoint;
-
 
             ball.transform.localPosition = ballOriginPoint;
 
@@ -176,48 +131,15 @@ public class Gameplay : MonoBehaviour
             
             broadcastCamComp.readyToDeliver = true;
             ball.transform.SetParent(null,true);
-            //ball.transform.position = ballLaunchPos;
+
             rb.isKinematic = true;
             currentBall = ball.transform;
             rb.isKinematic = false;
-            ball.SetActive(true);
-            
+            ball.SetActive(true);            
 
             readyToBowl = false;
 
-            //----------------------------------
-            {
-                //Vector3 toTarget = pitchPoint - ballLaunchPos;
-                //Vector3 toTargetXZ = new Vector3(toTarget.x, 0, toTarget.z);
-                //float y = toTarget.y; // This should be negative if the target is below
-                //float xz = toTargetXZ.magnitude;
-                //float gravity = Mathf.Abs(Physics.gravity.y);
-                //float speedSquared = speed * speed;
-
-                //float discriminant = speedSquared * speedSquared - gravity * (gravity * xz * xz + 2 * y * speedSquared);
-
-                ////Debug.Log($"y = {y}, xz = {xz}, speed = {speed}, discriminant = {discriminant}");
-
-                //if (discriminant < 0f)
-                //{
-                //    yield break; // Exit early
-                //}
-
-                //float discRoot = Mathf.Sqrt(discriminant);
-
-                //float angle = Mathf.Atan2(speedSquared - discRoot, gravity * xz);
-
-                //Vector3 velocity = toTargetXZ.normalized * Mathf.Cos(angle) * speed;
-                //velocity.y = Mathf.Sin(angle) * speed;
-
-                //rb.velocity = Vector3.zero;
-                //rb.angularVelocity = Vector3.zero;
-                //rb.WakeUp();
-                //rb.AddForce(velocity, ForceMode.VelocityChange);
-                //rb.AddTorque(Vector3.forward * -10f, ForceMode.Impulse);
-                //BowlingEngine.instance.ReleaseBall(false);
-                BowlingEngine.instance.Release();
-            }
+            BowlingEngine.instance.Release();
 
             broadcastCamComp.ball = ball;
 
@@ -228,16 +150,11 @@ public class Gameplay : MonoBehaviour
                 cam.ball = ball;                
             }
 
-            yield return new WaitForSeconds(.7f);                       
-
+            yield return new WaitForSeconds(.7f);
             yield return new WaitUntil(() => deliveryDead);
-
             ball.GetComponent<BallHit>().cover = false;
-
             broadcastCamComp.readyToDeliver = false;
-
             bowler.GetComponent<Animator>().SetBool("DeliveryComplete", true);
-
             yield return new WaitForSeconds(2);
 
             yield return new WaitForSeconds(2f);

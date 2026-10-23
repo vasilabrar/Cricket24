@@ -10,6 +10,12 @@ public class BallHit : MonoBehaviour
     [SerializeField] AudioSource soundFx;
     [SerializeField] AudioClip wicketFx, shotFx;
     [SerializeField] public Fielder keeper;
+    [SerializeField] float ballCollectionForward;
+
+    [SerializeField] bool debugBowlingSpeed;
+    bool speedDebugActive;
+    float speedDebugTimer;
+    float speedDebugElapsed;
 
     public string lastHit;
 
@@ -20,27 +26,35 @@ public class BallHit : MonoBehaviour
         rb = GetComponent<Rigidbody>();
     }
 
-    //private void Update()
-    //{
-    //    if (!Gameplay.instance) return;
+    public void StartSpeedDebug()
+    {
+        if (!debugBowlingSpeed) return;
 
+        speedDebugActive = true;
+        speedDebugTimer = 0f;
+        speedDebugElapsed = 0f;
 
-    //    if (!secondTouch) return;
-    //    if (!Gameplay.instance.stadiumBounds.Contains(transform.position))
-    //    {
-    //        Gameplay.instance.deliveryDead = true;
-    //    }
-    //    if (transform.position.x > 80 && transform.position.z < 24)
-    //    {
-    //        Gameplay.instance.sideCam.depth = 0;
-    //        Gameplay.instance.sideCam.enabled = true;
-    //    }
-    //    else
-    //    {
-    //        Gameplay.instance.sideCam.depth = -2;
-    //        Gameplay.instance.sideCam.enabled = false;
-    //    }
-    //}
+        Debug.Log($"BOWLING DEBUG START | Position: {rb.position} | Velocity: {rb.linearVelocity} | Speed: {rb.linearVelocity.magnitude * 3.6f:F1} km/h | Damping: {rb.linearDamping}");
+    }
+
+    void FixedUpdate()
+    {
+        if (!speedDebugActive || rb == null) return;
+
+        speedDebugElapsed += Time.fixedDeltaTime;
+        speedDebugTimer += Time.fixedDeltaTime;
+
+        if (speedDebugTimer < 0.1f) return;
+
+        speedDebugTimer = 0f;
+
+        Vector3 velocity = rb.linearVelocity;
+
+        Debug.Log($"BOWLING SPEED | Time: {speedDebugElapsed:F2}s | Total: {velocity.magnitude * 3.6f:F1} km/h | Horizontal: {new Vector3(velocity.x, 0f, velocity.z).magnitude * 3.6f:F1} km/h | Vertical: {velocity.y:F2} m/s | Position: {rb.position} | Kinematic: {rb.isKinematic} | Damping: {rb.linearDamping}");
+
+        if (speedDebugElapsed >= 3f || rb.isKinematic)
+            speedDebugActive = false;
+    }
 
     void OnCollisionEnter(Collision collision)
     {
@@ -51,12 +65,13 @@ public class BallHit : MonoBehaviour
             case "Wicket":
                 if (fielderReached || Gameplay.instance.deliveryDead) return;
                 soundFx.PlayOneShot(wicketFx);
-                Debug.Log("Stump crash");
+                //Debug.Log("Stump crash");
                 Gameplay.instance.Out();
                 Gameplay.instance.deliveryDead = true;
                 break;
 
             case "pitch":
+                //Debug.Log($"PITCH COLLISION | Velocity after collision: {rb.linearVelocity} | Speed: {rb.linearVelocity.magnitude * 3.6f:F1} km/h | Horizontal: {new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z).magnitude * 3.6f:F1} km/h");
                 if (secondTouch)
                 {
                     if (groundShot) return;
@@ -80,10 +95,9 @@ public class BallHit : MonoBehaviour
                 shotForce = rb.linearVelocity;
                 FieldManager.hitBallPos = transform.position;
                 FieldManager.hitVelocity = rb.linearVelocity;
-                Debug.Log("spot " + collision.gameObject.name);
-                //Gameplay.instance.bb.position = collision.GetContact(0).point;
+                Debug.Log($"BAT HIT SNAPSHOT | Position: {FieldManager.hitBallPos} | Velocity: {FieldManager.hitVelocity} | Speed: {FieldManager.hitVelocity.magnitude:F2}");
+                //Debug.Log("spot " + collision.gameObject.name);
                 Gameplay.instance.broadcastCamComp.readyToDeliver = false;
-                //StartCoroutine(waitAndLook());                
                 secondTouch = true;
                 soundFx.PlayOneShot(shotFx);
                 shootMarker.transform.position = PredictFallPosition(transform.position, FieldManager.hitVelocity, -4.44f);
@@ -94,7 +108,6 @@ public class BallHit : MonoBehaviour
                 if (secondTouch && !groundShot)
                 {
                     groundShot = true;
-                    //rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y * 0.04f, rb.velocity.z);
                 }
                 break;
 
@@ -104,7 +117,6 @@ public class BallHit : MonoBehaviour
                 stopTriggered = true;
                 boundary = true;
                 Gameplay.instance.deliveryDead = true;
-                //FieldManager.StopField?.Invoke();
                 break;
 
             case "gallery":
@@ -124,34 +136,70 @@ public class BallHit : MonoBehaviour
                 fieldedPlayer = other.transform.parent.gameObject;
                 fielderReached = true;
                 return;
-            }            
+            }
         }
 
         if (other.gameObject.tag is "fielder" or "DeepFielder")
         {
             if (secondTouch)
-            {                
+            {
                 fieldedPlayer = other.transform.parent.gameObject;
-                fielderReached = true;                
+                fielderReached = true;
             }
+        }
+
+        if(other.gameObject.tag is "boundary")
+        {
+            FieldManager.StopOther?.Invoke(null);
+            Debug.Log("Stopped by " + other.gameObject.name);
+            stopTriggered = true;
+            boundary = true;
+            Gameplay.instance.deliveryDead = true;
+            return;
         }
 
         if (other.gameObject.CompareTag("stop"))
         {
             if (stopTriggered) return;
+
+            //Debug.Log("stop");
             stopTriggered = true;
-            rb.isKinematic = true;
-            //transform.SetParent(other.transform, true);
-            //transform.position = other.transform.position;
             stopper = other.gameObject;
-            stopper.GetComponent<BallStopper>().fieldScript.DropBall(stopper.CompareTag("keeper")?true:false);
+
+            Transform parent = stopper.transform;
+            bool keeperStop = false;
+
+            while (parent != null)
+            {
+                if (parent.CompareTag("keeper"))
+                {
+                    keeperStop = true;
+                    break;
+                }
+
+                parent = parent.parent;
+            }
+
+            if (keeperStop)
+            {
+                Transform hand = stopper.transform.parent;
+
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.isKinematic = true;
+
+                transform.position = other.transform.position;
+                transform.SetParent(hand, true);
+
+                //Debug.Log($"Keeper caught ball at hand trigger: {hand.name}");
+            }
+
             FieldManager.StopOther?.Invoke(stopper.GetComponent<BallStopper>().fieldScript);
-            //Debug.Log("stopped by " + stopper.name);
         }
+
 
         if (other.gameObject.CompareTag("camTrigger"))
         {
-            //Debug.Log("os");
             Vector3 contactPoint = transform.position;
             CheckLegalDelivery(contactPoint);
             cover = true;
@@ -167,8 +215,8 @@ public class BallHit : MonoBehaviour
 
         while (pos.y > groundY)
         {
-            vel.y += gravity * timeStep;  
-            pos += vel * timeStep;        
+            vel.y += gravity * timeStep;
+            pos += vel * timeStep;
 
             if (pos.y <= groundY)
             {
@@ -183,16 +231,15 @@ public class BallHit : MonoBehaviour
         return pos; // fallback
     }
 
-    [SerializeField] LayerMask fielderLayer;
+    [SerializeField] LayerMask keeperLayer;
+    
 
     IEnumerator SimulateBallTrajectory(Vector3 startPosition, Vector3 initialVelocity)
     {
-        // 1. Match the project's exact physics step for 100% accuracy
         float timestep = Time.fixedDeltaTime;
         float maxTime = 2f;
-        float ballRadius = 0.12f;
-
-        // Get the drag from the actual Rigidbody component
+        float ballRadius = GetComponent<SphereCollider>().radius * transform.lossyScale.x;
+        //Debug.Log(ballRadius + " ra");
         float drag = rb.linearDamping;
 
         Vector3 currentPosition = startPosition;
@@ -202,52 +249,72 @@ public class BallHit : MonoBehaviour
 
         for (int s = 0; s < totalSteps; s++)
         {
-            // 2. Physics Step Calculation (Unity Style)
-            // First, apply gravity
             velocity += Physics.gravity * timestep;
-
-            // Second, apply Drag (This is what usually causes the "higher" error)
-            // Unity uses: velocity *= 1.0 / (1.0 + drag * timestep)
             velocity /= (1f + drag * timestep);
 
-            // Third, calculate the movement
             Vector3 moveDelta = velocity * timestep;
-            Vector3 nextPosition = currentPosition + moveDelta;
+            float moveDistance = moveDelta.magnitude;
 
-            // Visualization
-            Debug.DrawLine(currentPosition, nextPosition, Color.red, 2f);
-
-            // 3. Collision Detection
-            if (Physics.SphereCast(currentPosition, ballRadius, moveDelta.normalized, out RaycastHit hit, moveDelta.magnitude, fielderLayer, QueryTriggerInteraction.Collide))
+            if (moveDistance > 0.0001f)
             {
-                if (hit.collider.CompareTag("keeper") || (hit.collider.CompareTag("rayTest") && hit.collider.transform.parent.CompareTag("keeper")))
+                if (Physics.SphereCast(currentPosition, ballRadius, moveDelta.normalized, out RaycastHit hit, moveDistance, keeperLayer, QueryTriggerInteraction.Collide))
                 {
-                    Vector3 fixedCatchPoint = hit.point;
-                    fixedCatchPoint.z = 141.49f;
-                    ballCatchPoint = fixedCatchPoint;
+                    //Debug.Log($"Prediction hit: {hit.collider.name} | Tag: {hit.collider.tag} | Layer: {hit.collider.gameObject.layer}");
 
-                    shootMarker.transform.position = ballCatchPoint;
+                    BallStopper stopper = hit.collider.GetComponent<BallStopper>();
 
-                    //yield return new WaitUntil(() => Vector2.Distance(new Vector2(keeper.transform.position.x, keeper.transform.position.z), new Vector2(transform.position.x, transform.position.z)) <21);
-                    Debug.Log("check done for distance");
-                    keeper.GetComponent<Fielder>().enabled = true;
-                    keeper.KeeperRecieve(ballCatchPoint, this.transform);
-                    yield break;
+                    if (hit.collider.CompareTag("keeper") ||
+                        (hit.collider.CompareTag("rayTest") && hit.collider.transform.parent != null && hit.collider.transform.parent.CompareTag("keeper")) ||
+                        (hit.collider.CompareTag("stop") && stopper != null && stopper.fieldScript != null && stopper.fieldScript.isKeeper))
+                    {
+                        Vector3 fixedCatchPoint = hit.point;
+                        fixedCatchPoint.z = ballCollectionForward;
+                        ballCatchPoint = fixedCatchPoint;
+
+                        shootMarker.transform.position = ballCatchPoint;
+
+                        //Debug.Log($"KEEPER TARGET REQUEST | Point: {ballCatchPoint} | Keeper X: {keeper.transform.position.x:F2} | Delta X: {ballCatchPoint.x - keeper.transform.position.x:F2}");
+                        FieldManager.KeeperCollect?.Invoke(ballCatchPoint, transform, false);
+                        yield break;
+                    }
+                }
+
+            }
+
+            // Simulate pitch/ground collision, including bounce or rolling.
+
+            if (Physics.SphereCast(currentPosition, ballRadius, Vector3.down, out RaycastHit groundHit, ballRadius + 0.5f, Physics.AllLayers, QueryTriggerInteraction.Ignore) && groundHit.normal.y > 0.5f)
+            {
+                float groundDistance = currentPosition.y - (groundHit.point.y + ballRadius);
+
+                if (groundDistance <= 0.05f && Vector3.Dot(velocity, groundHit.normal) < 0f)
+                {
+                    currentPosition.y = groundHit.point.y + ballRadius;
+
+                    float restitution = groundHit.collider.sharedMaterial != null ? groundHit.collider.sharedMaterial.bounciness : 0f;
+                    float normalVelocity = Vector3.Dot(velocity, groundHit.normal);
+
+                    velocity -= (1f + restitution) * normalVelocity * groundHit.normal;
+
+                    if (Mathf.Abs(velocity.y) < 0.5f)
+                        velocity.y = 0f;
                 }
             }
 
-            currentPosition = nextPosition;
 
-            // This ensures we don't calculate everything in one frame (unless you want to)
-            // For a path preview, you might want to run this in a single frame's loop.
-            // For a real-time sync, we yield every few steps.
-            if (s % 5 == 0) yield return null;
+
+            currentPosition += velocity * timestep;
+
+            Debug.DrawRay(currentPosition, Vector3.up * 0.2f, Color.yellow, 2f);
         }
+
+        yield return null;
     }
+
 
     void CheckLegalDelivery(Vector3 enterPos)
     {
-        if(enterPos.z is <= -4.71f or >=1.8f || enterPos.y > 2.96f)
+        if (enterPos.z is <= -4.71f or >= 1.8f || enterPos.y > 2.96f)
         {
             //Debug.Log("wideball");
             //Gameplay.instance.legalDelivery = false;
@@ -263,7 +330,7 @@ public class BallHit : MonoBehaviour
     {
         lastHit = "";
         cover = false;
-        GetComponent<Rigidbody>().isKinematic = true;    
+        GetComponent<Rigidbody>().isKinematic = true;
         secondTouch = false;
         groundShot = false;
         keeperReceive = false;
